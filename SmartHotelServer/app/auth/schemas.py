@@ -8,6 +8,10 @@ class UserLoginFormSchema(BaseModel):
     password: Annotated[str, Field(min_length=8)]
 
 
+class UserRegistrationFormSchema(UserLoginFormSchema):
+    name: Annotated[str, Field()]
+
+
 class TokenSchema(BaseModel):
     access_token: str
     ble_token: str
