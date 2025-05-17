@@ -49,12 +49,14 @@ async def create_tables():
             booking_id SERIAL PRIMARY KEY,
             room_id    INTEGER NOT NULL REFERENCES rooms (room_id) ON DELETE RESTRICT, -- Don't allow deleting a room if it has bookings. Or CASCADE if you want to delete bookings if room is deleted. RESTRICT is safer.
             user_id    INTEGER NOT NULL REFERENCES users (user_id) ON DELETE CASCADE,  -- If user is deleted, their bookings are also deleted.
-            start_date DATE    NOT NULL,                                               -- The first day of the booking
-            end_date   DATE    NOT NULL,                                               -- The day *after* the last night of stay (i.e., checkout date, booking is up to, but not including, this date)
+            is_checked_in BOOLEAN NOT NULL DEFAULT FALSE,
+            is_checked_out BOOLEAN NOT NULL DEFAULT FALSE,
+            check_in    DATE    NOT NULL,                                               -- The first day of the booking
+            check_out   DATE    NOT NULL,                                               -- The day *after* the last night of stay (i.e., checkout date, booking is up to, but not including, this date)
             created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
 
-            CONSTRAINT chk_dates CHECK (end_date > start_date)
+            CONSTRAINT chk_dates CHECK (check_out > check_in)
         );
         """,
     )
