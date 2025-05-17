@@ -57,8 +57,8 @@ class SettingsScreen extends StatelessWidget {
                       const SizedBox(height: 16),
                       ListTile(
                         leading: const Icon(Icons.person),
-                        title: Text(authProvider.userName ?? 'Пользователь'),
-                        subtitle: const Text('Имя пользователя'),
+                        title: Text(authProvider.name ?? 'Пользователь'),
+                        subtitle: Text(authProvider.userPhone ?? 'Номер телефона'),
                       ),
                       const Divider(),
                       ListTile(

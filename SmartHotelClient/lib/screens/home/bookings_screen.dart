@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:smart_hotel/providers/booking_provider.dart';
 import 'package:intl/intl.dart';
+import 'package:smart_hotel/screens/home/create_booking_screen.dart';
+import 'package:smart_hotel/screens/home/room_control_screen.dart';
 
 class BookingsScreen extends StatelessWidget {
   const BookingsScreen({Key? key}) : super(key: key);
@@ -11,6 +13,30 @@ class BookingsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Мои бронирования'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const CreateBookingScreen(),
+                ),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.smart_toy),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const RoomControlScreen(),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: Consumer<BookingProvider>(
         builder: (context, bookingProvider, child) {

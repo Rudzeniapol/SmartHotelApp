@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:smart_hotel/models/device.dart';
 import 'dart:async';
+import 'package:permission_handler/permission_handler.dart';
 
 class DeviceProvider with ChangeNotifier {
   List<Device> _devices = [];
@@ -9,6 +10,7 @@ class DeviceProvider with ChangeNotifier {
   String? _error;
   Map<String, BluetoothDevice> _connectedDevices = {};
   StreamSubscription<BluetoothAdapterState>? _adapterStateSubscription;
+  StreamSubscription<List<ScanResult>>? _scanResultsSubscription;
 
   List<Device> get devices => _devices;
   bool get isScanning => _isScanning;
@@ -20,6 +22,17 @@ class DeviceProvider with ChangeNotifier {
 
   Future<void> _initializeBluetooth() async {
     try {
+      // Проверяем разрешения
+      final bluetoothStatus = await Permission.bluetooth.status;
+      final bluetoothScanStatus = await Permission.bluetoothScan.status;
+      final bluetoothConnectStatus = await Permission.bluetoothConnect.status;
+
+      if (!bluetoothStatus.isGranted || !bluetoothScanStatus.isGranted || !bluetoothConnectStatus.isGranted) {
+        _error = 'Необходимы разрешения для работы с Bluetooth';
+        notifyListeners();
+        return;
+      }
+
       // Подписываемся на изменения состояния Bluetooth
       _adapterStateSubscription = FlutterBluePlus.adapterState.listen((state) {
         if (state == BluetoothAdapterState.off) {
@@ -63,11 +76,14 @@ class DeviceProvider with ChangeNotifier {
       // Очищаем предыдущий список устройств
       _devices.clear();
 
+      // Отменяем предыдущую подписку, если она существует
+      await _scanResultsSubscription?.cancel();
+
       // Начинаем сканирование
       await FlutterBluePlus.startScan(timeout: const Duration(seconds: 4));
 
       // Слушаем результаты сканирования
-      FlutterBluePlus.scanResults.listen((results) {
+      _scanResultsSubscription = FlutterBluePlus.scanResults.listen((results) {
         for (ScanResult result in results) {
           if (!_devices.any((device) => device.id == result.device.remoteId.toString())) {
             _devices.add(Device(
@@ -111,7 +127,13 @@ class DeviceProvider with ChangeNotifier {
       );
 
       final bluetoothDevice = scanResult.device;
-      await bluetoothDevice.connect(timeout: const Duration(seconds: 5));
+      
+      // Добавляем таймаут для подключения
+      await bluetoothDevice.connect(timeout: const Duration(seconds: 5))
+          .timeout(const Duration(seconds: 5), onTimeout: () {
+        throw TimeoutException('Превышено время ожидания подключения');
+      });
+      
       _connectedDevices[deviceId] = bluetoothDevice;
       
       final index = _devices.indexWhere((d) => d.id == deviceId);
@@ -132,7 +154,11 @@ class DeviceProvider with ChangeNotifier {
       final bluetoothDevice = _connectedDevices[deviceId];
 
       if (bluetoothDevice != null) {
-        await bluetoothDevice.disconnect();
+        await bluetoothDevice.disconnect()
+            .timeout(const Duration(seconds: 5), onTimeout: () {
+          throw TimeoutException('Превышено время ожидания отключения');
+        });
+        
         _connectedDevices.remove(deviceId);
         
         final index = _devices.indexWhere((d) => d.id == deviceId);
@@ -169,6 +195,7 @@ class DeviceProvider with ChangeNotifier {
   @override
   void dispose() {
     _adapterStateSubscription?.cancel();
+    _scanResultsSubscription?.cancel();
     for (var device in _devices) {
       if (device.isConnected) {
         disconnectFromDevice(device.id);

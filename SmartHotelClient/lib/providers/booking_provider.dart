@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:smart_hotel/models/booking.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Booking {
   final String id;
@@ -56,7 +57,7 @@ class BookingProvider with ChangeNotifier {
   List<Booking> _bookings = [];
   bool _isLoading = false;
   String? _error;
-  static const String _baseUrl = 'YOUR_API_BASE_URL';
+  static const String _baseUrl = 'http://10.65.158.62:8000';
 
   List<Booking> get bookings => _bookings;
   bool get isLoading => _isLoading;
@@ -73,7 +74,8 @@ class BookingProvider with ChangeNotifier {
   }
 
   Future<String?> _getAuthToken() async {
-    return await _storage.read(key: 'auth_token');
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('auth_token');
   }
 
   Future<void> fetchBookings() async {
@@ -89,7 +91,7 @@ class BookingProvider with ChangeNotifier {
       }
 
       final response = await http.get(
-        Uri.parse('$_baseUrl/bookings'),
+        Uri.parse('$_baseUrl/hotle/bookings'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -121,7 +123,7 @@ class BookingProvider with ChangeNotifier {
       }
 
       final response = await http.post(
-        Uri.parse('$_baseUrl/bookings/$bookingId/check-in'),
+        Uri.parse('$_baseUrl/hotel/bookings/$bookingId/check-in'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -156,7 +158,7 @@ class BookingProvider with ChangeNotifier {
       }
 
       final response = await http.post(
-        Uri.parse('$_baseUrl/bookings/$bookingId/check-out'),
+        Uri.parse('$_baseUrl/hotel/bookings/$bookingId/check-out'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -185,5 +187,86 @@ class BookingProvider with ChangeNotifier {
   void clearError() {
     _error = null;
     notifyListeners();
+  }
+
+  Future<bool> createBooking({
+    required String roomNumber,
+    required DateTime checkIn,
+    required DateTime checkOut,
+  }) async {
+    try {
+      final token = await _storage.read(key: 'token');
+      if (token == null) {
+        _error = 'Требуется авторизация';
+        notifyListeners();
+        return false;
+      }
+
+      final response = await http.post(
+        Uri.parse('$_baseUrl/hotel/bookings'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'roomNumber': roomNumber,
+          'checkIn': checkIn.toIso8601String(),
+          'checkOut': checkOut.toIso8601String(),
+        }),
+      );
+
+      if (response.statusCode == 201) {
+        await fetchBookings(); // Обновляем список бронирований
+        return true;
+      } else {
+        _error = 'Ошибка при создании бронирования';
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      _error = 'Ошибка при создании бронирования: $e';
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> isRoomAvailable({
+    required String roomNumber,
+    required DateTime checkIn,
+    required DateTime checkOut,
+  }) async {
+    try {
+      final token = await _getAuthToken();
+      if (token == null) {
+        _error = 'Требуется авторизация';
+        notifyListeners();
+        return false;
+      }
+
+      final response = await http.get(
+        Uri.parse('$_baseUrl/hotel/rooms/$roomNumber/availability')
+            .replace(queryParameters: {
+          'checkIn': checkIn.toIso8601String(),
+          'checkOut': checkOut.toIso8601String(),
+        }),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['available'] ?? false;
+      } else {
+        _error = 'Ошибка при проверке доступности номера';
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      _error = 'Ошибка при проверке доступности номера: $e';
+      notifyListeners();
+      return false;
+    }
   }
 } 
