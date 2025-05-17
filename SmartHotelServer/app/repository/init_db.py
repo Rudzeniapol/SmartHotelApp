@@ -26,7 +26,7 @@ async def create_tables():
         CREATE TABLE users
         (
             user_id     SERIAL PRIMARY KEY,
-            number      VARCHAR(20) UNIQUE NOT NULL,
+            phone      VARCHAR(20),
             name        VARCHAR(100)       NOT NULL,
             role        user_role          NOT NULL,
             room_id     INTEGER            REFERENCES rooms (room_id) ON DELETE SET NULL,
@@ -45,7 +45,7 @@ async def create_tables():
         """
     )
 
-    async with get_db_connection(DATABASE_URL) as aconn:
+    async with get_db_connection() as aconn:
         for command in commands:
             try:
                 async with aconn.cursor() as acur:
