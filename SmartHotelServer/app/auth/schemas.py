@@ -29,7 +29,6 @@ class LoginInfoSchema(BaseModel):
     token: Annotated[str, Field()]
     name: Annotated[str, Field()]
 
-
 class TokenSchema(BaseModel):
     access_token: str
     ble_token: str

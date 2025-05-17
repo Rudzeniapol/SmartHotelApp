@@ -1,50 +1,29 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-// Цветовые схемы
-class AppColors {
-  static const Color darkPrimary = Color(0xFF1A1A2E);
-  static const Color darkSecondary = Color(0xFF16213E);
-  static const Color lightPrimary = Color(0xFFE8F1F2);
-  static const Color lightSecondary = Color(0xFFB8E0D2);
-  static const Color accentBlue = Color(0xFF0E86D4);
-}
-
-// Провайдер темы
 class ThemeProvider with ChangeNotifier {
-  bool _isDarkMode = false;
-  bool get isDarkMode => _isDarkMode;
+  ThemeMode _themeMode = ThemeMode.light;
+  static const String _themeKey = 'theme_mode';
 
-  ThemeData get currentTheme => _isDarkMode ? darkTheme : lightTheme;
+  ThemeMode get themeMode => _themeMode;
 
-  void toggleTheme() {
-    _isDarkMode = !_isDarkMode;
-    notifyListeners();
+  ThemeProvider() {
+    _loadTheme();
   }
 
-  static final lightTheme = ThemeData(
-    primaryColor: AppColors.lightPrimary,
-    scaffoldBackgroundColor: AppColors.lightPrimary,
-    colorScheme: ColorScheme.light(
-      primary: AppColors.accentBlue,
-      secondary: AppColors.lightSecondary,
-    ),
-    textTheme: TextTheme(
-      bodyLarge: TextStyle(color: AppColors.accentBlue),
-      bodyMedium: TextStyle(color: AppColors.accentBlue),
-    ),
-  );
+  Future<void> _loadTheme() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedTheme = prefs.getString(_themeKey);
+    if (savedTheme != null) {
+      _themeMode = savedTheme == 'dark' ? ThemeMode.dark : ThemeMode.light;
+      notifyListeners();
+    }
+  }
 
-  static final darkTheme = ThemeData(
-    primaryColor: AppColors.darkPrimary,
-    scaffoldBackgroundColor: AppColors.darkPrimary,
-    colorScheme: ColorScheme.dark(
-      primary: AppColors.accentBlue,
-      secondary: AppColors.darkSecondary,
-    ),
-    textTheme: TextTheme(
-      bodyLarge: TextStyle(color: AppColors.accentBlue),
-      bodyMedium: TextStyle(color: AppColors.accentBlue),
-    ),
-  );
+  Future<void> toggleTheme() async {
+    _themeMode = _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_themeKey, _themeMode == ThemeMode.dark ? 'dark' : 'light');
+    notifyListeners();
+  }
 } 
