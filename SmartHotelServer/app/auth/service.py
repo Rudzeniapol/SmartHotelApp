@@ -57,10 +57,10 @@ async def is_user_exist(phone: str):
     return result
 
 
-async def register_user(user: UserRegistrationFormSchema):
+async def register_user(user: UserRegistrationFormSchema, role='guest'):
     hashed_password = hashlib.sha256(user.password.encode()).hexdigest()
     try:
-        await queries.insert_user(user.phone, user.name, "guest", None, hashed_password)
+        await queries.insert_user(user.phone, user.name, role, None, hashed_password)
         return True
     except UniqueViolation as e:
         raise HTTPException(status_code=400, detail="User already exists")
