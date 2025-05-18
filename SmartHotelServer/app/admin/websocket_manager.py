@@ -9,33 +9,33 @@ from datetime import datetime
 
 class ConnectionManager:
     def __init__(self):
-        self.active_connections: DefaultDict[int, List[WebSocket]] = defaultdict(list)
+        self.active_connections: DefaultDict[str, List[WebSocket]] = defaultdict(list)
 
-    async def connect(self, websocket: WebSocket, room_id: int):
+    async def connect(self, websocket: WebSocket, room_identifier: str):
         await websocket.accept()
-        self.active_connections[room_id].append(websocket)
-        print(f"Client connected to room {room_id}. Total clients for room: {len(self.active_connections[room_id])}")
+        self.active_connections[room_identifier].append(websocket)
+        print(f"Client connected to room {room_identifier}. Total clients for room: {len(self.active_connections[room_identifier])}")
 
-    def disconnect(self, websocket: WebSocket, room_id: int):
-        if websocket in self.active_connections[room_id]:
-            self.active_connections[room_id].remove(websocket)
-            print(f"Client disconnected from room {room_id}. Remaining clients for room: {len(self.active_connections[room_id])}")
-            if not self.active_connections[room_id]:
-                del self.active_connections[room_id]
-                print(f"Room {room_id} has no active connections, removed from manager.")
+    def disconnect(self, websocket: WebSocket, room_identifier: str):
+        if websocket in self.active_connections[room_identifier]:
+            self.active_connections[room_identifier].remove(websocket)
+            if not self.active_connections[room_identifier]:
+                del self.active_connections[room_identifier]
 
     async def send_personal_message(self, message: str, websocket: WebSocket):
-        await websocket.send_text(message)
+        try:
+            await websocket.send_text(message)
+        except Exception as e:
+            print(f"Error sending personal message: {e}")
 
-    async def broadcast_to_room(self, room_id: int, message: dict):
+    async def broadcast_to_room(self, room_identifier: str, message: dict):
         message_str = json.dumps(message)
-        connections_in_room = list(self.active_connections.get(room_id, []))
+        connections_in_room = list(self.active_connections.get(room_identifier, []))
         for connection in connections_in_room:
             try:
                 await connection.send_text(message_str)
             except Exception as e:
-                print(f"Error sending to a websocket in room {room_id}: {e}. Removing.")
-                self.disconnect(connection, room_id)
+                self.disconnect(connection, room_identifier)
 
 
 manager = ConnectionManager()
@@ -45,8 +45,11 @@ async def emulate_room_data_sender():
     """
     Эмулирует отправку данных (например, температуры) в комнаты каждые N секунд.
     """
+    print("DEBUG: emulate_room_data_sender started.")
     while True:
+        print("DEBUG: Top of while True loop.")  # <--- Добавьте это
         await asyncio.sleep(5)
+        print("DEBUG: After asyncio.sleep(5).")  # <--- Добавьте это
         if not manager.active_connections:
             continue
 

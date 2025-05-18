@@ -33,8 +33,7 @@ async def register(user_data: Annotated[UserRegistrationFormSchema, Body()],
 @admin_router.websocket("/ws/room/{room_number}")
 async def websocket_room_endpoint(
     websocket: WebSocket,
-    room_number: Annotated[int, Path(title="The ID of the room to connect to", ge=1)],
-    current_admin: Annotated[UserSchema, Depends(get_current_admin)]
+    room_number: Annotated[str, Path(title="The ID of the room to connect to")]
 ):
     room = await queries.get_room_by_number(room_number)
     if room is None:

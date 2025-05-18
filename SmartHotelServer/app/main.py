@@ -14,14 +14,14 @@ from app.admin.websocket_manager import emulate_room_data_sender
 async def lifespan(app: FastAPI):
     await create_tables()
     print("Starting up... Starting data emulator task.")
-    # emulator_task = asyncio.create_task(emulate_room_data_sender())
+    emulator_task = asyncio.create_task(emulate_room_data_sender())
     yield
-    # print("Shutting down... Cancelling data emulator task.")
-    # emulator_task.cancel()
-    # try:
-    #     await emulator_task
-    # except asyncio.CancelledError:
-    #     print("Data emulator task cancelled.")
+    print("Shutting down... Cancelling data emulator task.")
+    emulator_task.cancel()
+    try:
+        await emulator_task
+    except asyncio.CancelledError:
+        print("Data emulator task cancelled.")
 
 app = FastAPI(lifespan=lifespan)
 

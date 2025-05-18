@@ -1,0 +1,90 @@
+      
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Room Test</title>
+</head>
+<body>
+    <h1>Room Data</h1>
+    <div>
+        <label for="roomIdentifier">Room Number/Identifier:</label> <!-- Изменено -->
+        <input type="text" id="roomIdentifier" value="101A">   <!-- Изменен тип и пример значения -->
+        <button onclick="connect()">Connect</button>
+        <button onclick="disconnect()" disabled id="disconnectBtn">Disconnect</button>
+    </div>
+    <pre id="messages"></pre>
+
+    <script>
+        let websocket;
+        const messagesDiv = document.getElementById('messages');
+        const roomIdentifierInput = document.getElementById('roomIdentifier'); // Изменено имя переменной
+        const disconnectBtn = document.getElementById('disconnectBtn');
+        const connectBtn = document.querySelector('button[onclick="connect()"]');
+
+        function logMessage(message) {
+            const p = document.createElement('p');
+            p.textContent = message;
+            messagesDiv.appendChild(p);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function connect() {
+            const roomIdentifier = roomIdentifierInput.value; // Используем новое имя переменной
+            if (!roomIdentifier) {
+                logMessage("Please enter a Room Number/Identifier.");
+                return;
+            }
+
+            // Убедитесь, что URL правильный (особенно /hotel/ если он есть)
+            // И что сервер ожидает строку room_identifier в этом пути
+            const wsUrl = `ws://localhost:8000/admin/ws/room/${encodeURIComponent(roomIdentifier)}`; // Используем новое имя, encodeURIComponent для безопасности
+
+            logMessage(`Connecting to ${wsUrl}...`);
+            websocket = new WebSocket(wsUrl);
+
+            websocket.onopen = function(event) {
+                logMessage("Connected to WebSocket server for room " + roomIdentifier);
+                disconnectBtn.disabled = false;
+                connectBtn.disabled = true;
+                roomIdentifierInput.disabled = true; // Исправлено
+            };
+
+            websocket.onmessage = function(event) {
+                logMessage("Received: " + event.data);
+                try {
+                    const jsonData = JSON.parse(event.data);
+                    if (jsonData.type === "room_update" && jsonData.room_identifier === roomIdentifier) { // Сравнение с room_identifier
+                        logMessage(`Temperature: ${jsonData.data.temperature}°C, Humidity: ${jsonData.data.humidity}%`);
+                    } else if (jsonData.type === "room_update") {
+                        // Данные для другой комнаты, если вдруг сервер шлет все подряд (маловероятно с вашей логикой)
+                        logMessage(`Update for room ${jsonData.room_identifier}: Temp ${jsonData.data.temperature}°C`);
+                    }
+                } catch (e) {
+                    // Не JSON
+                }
+            };
+
+            websocket.onclose = function(event) {
+                logMessage(`Disconnected. Code: ${event.code}, Reason: ${event.reason || 'No reason provided'}`);
+                disconnectBtn.disabled = true;
+                connectBtn.disabled = false;
+                roomIdentifierInput.disabled = false; // Исправлено
+                websocket = null;
+            };
+
+            websocket.onerror = function(event) {
+                logMessage("WebSocket error: " + event);
+                console.error("WebSocket error observed:", event);
+            };
+        }
+
+        function disconnect() {
+            if (websocket) {
+                websocket.close();
+            }
+        }
+    </script>
+</body>
+</html>
+
+    
