@@ -27,6 +27,10 @@ def create_access_token(data: dict) -> str:
     return create_jwt(data, timedelta(minutes=JWT_EXPIRE_MINUTES), JWT_SECRET)
 
 
+def decode_access_token(token: str) -> dict:
+    return dict(jwt.decode(token, JWT_SECRET, algorithms=[ALGORITHM]))
+
+
 async def get_user_by_phone(phone: str):
     user = await queries.get_user_by_phone(phone)
     if user:
@@ -37,9 +41,9 @@ async def get_user_by_phone(phone: str):
 async def authenticate_user(user_data: UserLoginFormSchema) -> LoginInfoSchema | None:
     user = await queries.get_user_by_phone(user_data.phone)
     if not user:
-        raise HTTPException('User does not exist', status.HTTP_401_UNAUTHORIZED)
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='User does not exist')
     if not verify_password(user_data.password, user["hashed_pswd"]):
-        raise HTTPException('Incorrect password', status.HTTP_401_UNAUTHORIZED)
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='incorrect password')
     access_token = create_access_token({
         "sub": user_data.phone,
         "type": "access",
