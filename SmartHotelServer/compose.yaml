@@ -10,6 +10,7 @@ services:
       ALGORITHM: ${ALGORITHM}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRE_MINUTES: ${JWT_EXPIRE_MINUTES}
+      ADMIN_VALIDATION_PSWD: ${ADMIN_VALIDATION_PSWD}
     volumes:
       - ./app:/app
     depends_on:
