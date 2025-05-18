@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Body, status
 from fastapi.responses import JSONResponse
 
 from app.auth.dependencies import get_current_user
+from app.admin.dependencies import get_current_admin
 from app.auth.schemas import UserSchema
 from app.hotel.schemas import BookingSchema, SetBookingSchema
 from app.repository import queries
@@ -48,3 +49,22 @@ async def set_booking(current_user: Annotated[UserSchema, Depends(get_current_us
     if await service.set_booking(current_user.user_id, booking):
         return JSONResponse({'message': 'booking is registered!'}, status.HTTP_201_CREATED)
     return HTTPException(status_code=400, detail="Booking is unavailable")
+
+
+@hotel_router.get("/all_bookings", tags=["admin"])
+async def get_bookings(current_user: Annotated[UserSchema, Depends(get_current_admin)]):
+    result = await queries.get_all_bookings()
+    if result is None:
+        return []
+    bookings = []
+    for record in result:
+        bookings.append(BookingSchema(**record))
+    return bookings
+
+
+@hotel_router.get("/all_rooms", tags=["admin"])
+async def get_bookings(current_user: Annotated[UserSchema, Depends(get_current_admin)]):
+    result = await queries.get_rooms()
+    if result is None:
+        return None
+    return result

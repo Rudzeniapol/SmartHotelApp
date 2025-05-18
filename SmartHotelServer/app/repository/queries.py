@@ -89,6 +89,20 @@ async def get_bookings(user_id: int):
                 return records
             return None
 
+
+async def get_all_bookings():
+    async with get_db_connection() as conn:
+        async with conn.cursor(row_factory=rows.dict_row) as cur:
+            await cur.execute(
+            """
+                SELECT * FROM bookings
+            """)
+            records = await cur.fetchall()
+            if records:
+                return records
+            return None
+
+
 """ CONFLICTING BOOKINGS:
     SELECT booking_id -- Select anything, we just care if rows are returned
     FROM bookings
